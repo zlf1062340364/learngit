@@ -1,0 +1,318 @@
+一、沙盒基本机制
+
+二、plist储存
+
+三、偏好设置
+
+四、NSKeydeArchiver归档
+
+ 
+一、沙盒基本机制（sandbox）
+
+
+iOS系统相对于Android系统，或者相对于Windows系统来说比较安全的原因很多，其中有一点就是苹果推出的沙盒机制，
+每个应用都有自己对应的沙盒，每个应用程序之间不能相互访问非本程序的沙盒，所以，
+Apple相对于其他的系统来说比较安全，再是从内存上来说相对于Windows来说也比较安全，
+Apple的应用程序在内存消耗过高时，收到内存警告不及时处理的话应用软件会自动退出，
+而不想Windows系统一样，中了病毒或者木马会一直消耗内存，知道内存没有了，OK，Down机。
+恩，可以这么，沙盒机制，让iOS系统变得更安全。
+1、bundle
+
+
+1.1 bundle路径就是通常所说的应用程序在手机里面的安装路径，其就是一个目录，
+这个目录就是main bundle。这个目录里面通常包含图像、媒体资源、编译好的代码、nib，文件等等。
+
+1.1.1 查看方法bundle，可以通过itunes下载任意应用，在Finder中找到下载的应用，
+以归档的方式打开ipa包，系统会解压出来一个文件夹，在文件夹中找到.app的文件，
+这就是我们安装在手机里的bundle，右键显示包内容可以查看bundle中的文件。
+1.1.2 可以通过如下代码获取bundle，但是这个获取模拟器在Mac上的路径
+
+
+[NSBundle mainBundle].bundlePath
+
+2、沙盒
+
+2.1、iOS系统下每个应用都有自己对应的沙盒，每个沙盒之间都是相互独立的，互不能访问（没有越狱的情况下）。正因为这样的沙盒机制让iOS的系统变得更安全。
+
+2.2、获取沙盒路径的代码
+
+
+NSHomeDirectory()
+2.3、沙盒中的结构
+
+沙盒的作用就是存储数据，每个沙盒就相当于每个每个应用的系统目录。
+
+2.3.1、沙盒中的内部结构如上图所示
+
+2.3.1.1、Documents 应用程序在运行时生成的一些需要长久保存的数据（比如：游戏进度存档、应用程序个人设置等等），通过 iTunes、iCloud 备份时, 会备份这个目录下的数据. 此目录下保存相对重要的数据。
+
+2.3.1.2、Library/Caches 从网络上下载的文件或者数据（如：音乐缓存、图片缓存等），此目录下的数据不会自动删除，需要程序员手动清除改目录下的数据。iTunes、iCloud 备份时不会备份此目录下的数据.主要用于保存应用在运行时生成的需要长期使用的数据.一般用于存储体积较大,不需要备份的非重要数据。
+
+
+2.3.1.3、Library/Preferences保存通过"偏好设置"写入的数据。设置应用的一些功能会在该目录中查找相应设置的信息,iTunes、iCloud备份时,会备份次目录下的数据。该目录由系统自动管理,通常用来储存一些基本的应用配置信息,比如账号密码,自动登录等。
+2.3.1.4、tmp保存应用运行时产生的一些临时数据,应用程序退出，系统磁盘空间不够,手机重启时,都会自动清除该目录的数据。无需程序员手动清除该目录中的数据.iTunes、iCloud备份时,不会备份次目录。
+
+
+二、
+保存在Document文件夹
+
+1.1、利⽤NSSearchPathForDirectoriesInDomains方法在沙盒中寻在目录
+
+
+1.2、NSDocumentDirectory 要寻找的字典对象,也就是要搜索的目录，
+也可以查找NSCachesDirectory和NSPreferencePanesDirectory。
+1.3、NSUserDomainMask 代表从用户目录下寻找
+
+1.4、是否展开~ ，YES代表展开
+
+1.5、如果为NO打印的结果为 ~/Documents 不是我们想要的
+
+
+NSString *doc = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES)[0];
+
+
+1.6、使用这个方法系统会判断doc路径后面是否有/，没有会自动添加，
+如果有则不添加。
+
+NSString *path = [doc stringByAppendingPathComponent:@"test.plist"];
+
+1.7、保存数据
+
+plist只能保存集中最基本的数据类型,就是writeToFile方法的对象才能保存在plist文件中
+
+
+NSDictionary *dict = @{@"test1":@"test2"};
+[dict writeToFile:path atomically:YES];
+1.8、读取数据
+
+
+NSDictionary *dictTest = [NSDictionary dictionaryWithContentsOfFile:path]; 
+
+三、偏好设置
+
+保存在Preference
+
+1、iOS应用都可以通过偏好设置来快速保存用户登陆账号，密码和登陆状态等等信息。
+
+2、苹果提供了一个NSUserDefaults实例，通过它来存取偏好设置。保存格式为plist文件格式。
+
+
+3、使用偏好设置来保存数据, 默认存储在Preferences的文件夹下，偏好设置数据会将所有的数据都
+保存到Preferences的文件夹下的同一个plist文件中。
+
+4、使用偏好设置对数据进行保存, 它保存的时间是不确定的，会在将来某一时间自动将数
+据保存到Preferences文件夹下，如果需要即刻将数据存储，使用[defaults synchronize]。
+保存偏好设置数据
+
+
+// 获取NSUserDefaults对象
+NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+// 保存数据
+[defaults setObject:@"test" forKey:@"test"];
+// 让数据立刻保存
+[defaults synchronize];
+
+####读取偏好设置数据
+
+// 获取NSUserDefaults对象
+NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+// 读取数据
+NSString *test = [defaults objectForKey:@"test"];
+
+四、NSKeydeArchiver归档
+
+保存在Document文件夹
+
+
+1、前面两种方式只能保存plist支持的基本数据类型，那么要保存自定义的类对象，苹果提供
+了NSKeydeArchiver归档。
+2、使用NSKeydeArchiver归档必须使被归档的类遵守NSCoding协议并且实现协议方法。
+
+Person.h
+
+
+#import <Foundation/Foundation.h>
+
+@interface Person : NSObject <NSCoding>
+
+@property (nonatomic, copy) NSString *name;
+@property (nonatomic, assign) int age;
+
+@end
+Person.m
+
+
+#import "Person.h"
+
+@implementation Person
+
+// 归档
+// 当一个对象要保存到文件中的时候回调用如下方法，所以重写该方法，说明保存该对象的时候要保存哪些属性。
+- (void)encodeWithCoder:(NSCoder *)aCoder {
+[aCoder encodeObject:self.name forKey:@"name"];
+[aCoder encodeInteger:self.age forKey:@"age"];
+}
+
+// 解档
+// 当一个对象从文件中读取的时候，系统会调用该方法，重写该方法
+- (nullable instancetype)initWithCoder:(NSCoder *)aDecoder {
+if ([super init]) {
+    self.name = [aDecoder decodeObjectForKey:@"name"];
+    self.age = [aDecoder decodeIntForKey:@"age"];
+}
+return self;
+}
+
+@end
+ViewController.m
+
+
+#import "ViewController.h"
+#import "Person.h"
+@interface ViewController ()
+
+@end
+
+@implementation ViewController
+
+- (void)viewDidLoad {
+[super viewDidLoad];
+
+// 保存数据
+//1.创建对象
+Person *p1 = [[Person alloc] init];
+p1.name = @"test";
+p1.age = 20;
+
+//2.获取文件路径
+NSString *docPath=NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES)[0];
+NSString *path=[docPath stringByAppendingPathComponent:@"person.test"];
+
+//3.将自定义的对象保存到文件中
+[NSKeyedArchiver archiveRootObject:p1 toFile:path];
+
+// 读取数据
+Person *p2 =[NSKeyedUnarchiver unarchiveObjectWithFile:path];
+
+}
+
+- (void)didReceiveMemoryWarning {
+[super didReceiveMemoryWarning];
+// Dispose of any resources that can be recreated.
+}
+
+@end
+
+Tips：通过NSKeydeArchiver保存的数据的文件后缀名可以任意命名，并且通过plist保存的数据是直接显示
+出来的，不安全。通过归档方法保存的数据在文件中打开是编码，更安全。
+
+
+
+// 写入沙盒
+- (void)writeReadArrPlistWithDataArr:(NSMutableArray *)dataArr {
+NSString *path = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES)[0];
+NSString *docuPath = [path stringByAppendingPathComponent:bidPath]; // 获取沙盒路径
+NSLog(@"docuPath: %@",docuPath);
+BOOL b = [dataArr writeToFile:docuPath atomically:YES];
+b ? NSLog(@"写入沙盒成功") : NSLog(@"写入沙盒失败");
+}
+
+// 读取沙盒文件
+- (void)readReadArrPlist {
+NSString *path = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES)[0];
+NSString *docuPath = [path stringByAppendingPathComponent:bidPath];
+mReadArr = [NSMutableArray arrayWithContentsOfFile:docuPath];
+if (!mReadArr) {
+mReadArr = [NSMutableArray arrayWithCapacity:0];
+}
+}
+
+// 删除沙盒中的文件
+- (void)deleteReadArrPlist {
+NSString *path = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES)[0];
+NSString *docuPath = [path stringByAppendingPathComponent:bidPath];
+NSFileManager *fileManager = [NSFileManager defaultManager];
+[fileManager removeItemAtPath:docuPath error:nil];
+}
+
+补充：
+
+获取文件路径
+
+* 获取Documents文件路径
+
+/**
+   *      获取Document下的文件路径
+   *
+   *      @param NSDocumentDirectory 获取Document目录
+   *      @param NSUserDomainMask    是在当前沙盒范围内查找
+   *      @param YES                 展开路径，NO是不展开
+   *
+   *      @return test.txt文件的路径
+   */
+NSString *filePath = [[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, 
+NSUserDomainMask, YES)firstObject]stringByAppendingPathComponent:@"test.txt"];
+* 获取Library文件路径
+
+  /**
+   *      获取Library目录下文件路径
+   *
+   *      @param NSLibraryDirectory 获取Library目录
+   *      @param NSUserDomainMask   在当前的沙盒范围内查找
+   *      @param YES                展开路径，NO不展开路径
+   *
+   *      @return test.txt文件的路径
+   */
+  NSString *filePath = [[NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, 
+NSUserDomainMask, YES)firstObject]stringByAppendingPathComponent:@"test.txt"];
+* 获取Library/Caches文件目录
+
+  /**
+   *      获取Library目录下文件路径
+   *
+   *      @param NSCachesDirectory 获取Library/Caches目录
+   *      @param NSUserDomainMask  在当前的沙盒范围内查找
+   *      @param YES               展开路径，NO不展开路径
+   *
+   *      @return test.txt文件的路径
+   */
+  NSString *filePath = [[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, 
+NSUserDomainMask, YES)firstObject]stringByAppendingPathComponent:@"test.txt"];
+* 获取Library/Preferences，Preferences由系统维护，不需要我们手动的获取文件路径进行操作，而是需要借助NSUserDefault来操作,但是我们是可以获取到这个文件的。
+
+  /**
+   *      获取Library目录下文件路径
+   *
+   *      @param NSLibraryDirectory 获取Library目录
+   *      @param NSUserDomainMask   在当前的沙盒范围内查找
+   *      @param YES                展开路径，NO不展开路径
+   *
+   *      @return Preferences文件的路径
+   */
+
+  NSString *filePath = [[NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, 
+NSUserDomainMask, YES)firstObject]stringByAppendingPathComponent:@"Preferences"];
+* 获取tmp文件路径
+
+  /**
+   *      获取tmp文件目录下的文件路径
+   *
+   *      @return test.txt的文件路径
+   */
+  NSString *filePath = [NSTemporaryDirectory()stringByAppendingPathComponent:@"test.txt"];
+代码获取应用程序包的目录与内容
+
+* 获取应用程序包的路径
+
+NSString *imagePath = [NSBundle mainBundle].resourcePath;
+程序包文件，包含了资源文件和可执行文件AppName.app
+* 获取程序包中一个图片资源路径的方法（apple.png）
+
+  NSString *imagePath = [[NSBundle mainBundle]pathForResource:@"apple" ofType:@"png"];
+imageWithname这种加载的方式是有缓存的，第二次在加载时直接从内存中取出图片，这样的话效率更高，但是会使得内存变得越来越大，通常使用在，图片内存较小，而且需要频繁使用的地方。NSBundle mainBundle 是通过获取图片的全路径来加载图片的，不会有缓存，但是这样每次就得重新加载，它也不会是在不是在使用完图片后就释放，而是在下一次使用图片的时候才会释放，所以需要我们在使用完图片后，手动来释放内存
+
+
+作者：Joker_King
+链接：http://www.jianshu.com/p/1903bcab60e4
+來源：简书
+著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
